@@ -131,8 +131,6 @@ public class JarImplementor extends Implementor implements JarImpler {
             classPath = classPath.resolve(kgeorgiy);
         } catch (URISyntaxException ignored) {
         }
-        System.out.println("dsf");
-
         JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
         if (javaCompiler == null) throw new ImplerException("no java compiler");
         String[] args = {"-cp", classPath + File.pathSeparator + System.getProperty("java.class.path"), Path.of(temp.toAbsolutePath().toString(), filePath + ".java").toString()};
