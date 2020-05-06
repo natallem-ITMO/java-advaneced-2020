@@ -16,5 +16,5 @@ module java.solutions {
     requires info.kgeorgiy.java.advanced.student;
     requires info.kgeorgiy.java.advanced.walk;
 
-    exports ru.ifmo.rain.lemeshkova.implementor;
+    exports ru.ifmo.rain.lemeshkova.hello;
 }
