@@ -12,7 +12,7 @@ public class WebCrawler implements Crawler {
     private final ExecutorService downloaders;
     private final ExecutorService extractors;
     private final int perHost;
-    private Map<String, HostHandler> hostDataMap;
+    private final Map<String, HostHandler> hostDataMap;
 
 
     public WebCrawler(Downloader downloader, int downloaders, int extractors, int perHost) {
@@ -25,27 +25,26 @@ public class WebCrawler implements Crawler {
 
     @Override
     public Result download(String url, int depth) {
-        Set<String> urlForProcess = new ConcurrentSkipListSet<>();
-        urlForProcess.add(url);
-        return bfs(depth, urlForProcess);
+        Set<String> processUrls = new ConcurrentSkipListSet<>();
+        processUrls.add(url);
+        return bfs(depth, processUrls);
     }
 
-    Result bfs(int depth, Set<String> urlForProcess) {
+    private Result bfs(int depth, Set<String> processUrls) {
         Set<String> result = new HashSet<>();
         Map<String, IOException> errors = new ConcurrentHashMap<>();
         for (int i = 0; i < depth; i++) {
             Phaser phaser = new Phaser(1);
-            List<String> currentProcessingUrl = new ArrayList<>(urlForProcess);
-            urlForProcess.clear();
-            boolean isExtractable = ((depth - i) != 1);
-            currentProcessingUrl.stream().filter(x -> !result.contains(x)).forEach(url ->
-            {
+            List<String> currentProcessingUrls = new ArrayList<>(processUrls);
+            processUrls.clear();
+            boolean extractable = (depth - i) != 1;
+            currentProcessingUrls.stream().filter(x -> !result.contains(x)).forEach(url -> {
                 result.add(url);
                 phaser.register();
                 try {
                     String host = URLUtils.getHost(url);
                     HostHandler hostHandler = hostDataMap.computeIfAbsent(host, s -> new HostHandler());
-                    hostHandler.addToQueueOrSubmit(url, urlForProcess, errors, phaser, isExtractable);
+                    hostHandler.addToQueueOrSubmit(url, processUrls, errors, phaser, extractable);
                 } catch (MalformedURLException e) {
                     errors.put(url, e);
                 }
@@ -56,32 +55,63 @@ public class WebCrawler implements Crawler {
         return new Result(new ArrayList<>(result), errors);
     }
 
-    void downloadThreadFunction(String currentURL, HostHandler hostHandler, Set<String> nextUrls,
-                                Map<String, IOException> errors, Phaser phaser, boolean isExtractable) {
-        while (currentURL != null) {
-            downloadUrlAndSubmitExtraction(currentURL, nextUrls, errors, phaser, isExtractable);
-            currentURL = hostHandler.getUrlOrDecreaseHostDownloadingNumber();
-            phaser.arrive();
-        }
-    }
-
-    void downloadUrlAndSubmitExtraction(String url, Set<String> nextUrls, Map<String, IOException> errors,
-                                        Phaser phaser, boolean isExtractable) {
+    private void downloadUrlAndSubmitExtraction(String url, Set<String> futureProcessingUrls, Map<String, IOException> errors,
+                                                Phaser phaser, boolean isExtractable) {
         try {
             Document downloadedDocument = downloader.download(url);
             if (isExtractable) {
                 phaser.register();
                 extractors.submit(() -> {
                     try {
-                        nextUrls.addAll(downloadedDocument.extractLinks());
+                        futureProcessingUrls.addAll(downloadedDocument.extractLinks());
                     } catch (IOException ignored) {
+                        // No operations.
+                    } finally {
+                        phaser.arrive();
                     }
-                    phaser.arrive();
                 });
             }
         } catch (IOException e) {
             errors.put(url, e);
         }
+    }
+
+    private void downloadThreadFunction(String currentUrl, HostHandler hostHandler, Set<String> futureProcessingUrls,
+                                        Map<String, IOException> errors, Phaser phaser, boolean isExtractable) {
+        while (currentUrl != null) {
+            downloadUrlAndSubmitExtraction(currentUrl, futureProcessingUrls, errors, phaser, isExtractable);
+            currentUrl = hostHandler.getUrlOrDecreaseHostDownloadingNumber();
+            phaser.arrive();
+        }
+    }
+
+    private class HostHandler {
+        private int downloadingUrlCount;
+        private final Queue<String> notProcessedHostUrls;
+
+        public HostHandler() {
+            this.downloadingUrlCount = 0;
+            this.notProcessedHostUrls = new ArrayDeque<>();
+        }
+
+        private synchronized void addToQueueOrSubmit(String URL, Set<String> futureProcessingUrls, Map<String, IOException> errors,
+                                                     Phaser phaser, boolean extractable) {
+            if (downloadingUrlCount < perHost) {
+                downloadingUrlCount++;
+                downloaders.submit(() -> downloadThreadFunction(URL, this, futureProcessingUrls, errors, phaser, extractable));
+            } else {
+                notProcessedHostUrls.add(URL);
+            }
+        }
+
+        private synchronized String getUrlOrDecreaseHostDownloadingNumber() {
+            if (!notProcessedHostUrls.isEmpty()) {
+                return notProcessedHostUrls.poll();
+            }
+            downloadingUrlCount--;
+            return null;
+        }
+
     }
 
     @Override
@@ -99,39 +129,11 @@ public class WebCrawler implements Crawler {
         }
     }
 
-    private class HostHandler {
-        private int downloadingUrlNumber;
-        private Queue<String> notProcessedHostUrl;
-
-        public HostHandler() {
-            this.downloadingUrlNumber = 0;
-            this.notProcessedHostUrl = new ArrayDeque<>();
-        }
-
-        private synchronized void addToQueueOrSubmit(String URL, Set<String> nextUrls, Map<String, IOException> errors,
-                                                     Phaser phaser, boolean isExtractable) {
-            if (downloadingUrlNumber < perHost) {
-                downloadingUrlNumber++;
-                downloaders.submit(() -> downloadThreadFunction(URL, this, nextUrls, errors, phaser, isExtractable));
-            } else {
-                notProcessedHostUrl.add(URL);
-            }
-        }
-
-        private synchronized String getUrlOrDecreaseHostDownloadingNumber() {
-            if (!notProcessedHostUrl.isEmpty()) {
-                return notProcessedHostUrl.poll();
-            }
-            downloadingUrlNumber--;
-            return null;
-        }
-    }
-
     private static int getArgumentOrDefault(String[] args, int index, int defaultValue) {
         return (args.length > index) ? Integer.parseInt(args[index]) : defaultValue;
     }
 
-    public static void showResult(Result result) {
+    private static void showResult(Result result) {
         System.out.println("Downloaded " + result.getDownloaded().size() + " :\n" +
                 String.join("\n", result.getDownloaded()));
         System.out.println("URL with errors " + result.getErrors().size() + " :\n");
@@ -140,8 +142,8 @@ public class WebCrawler implements Crawler {
 
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.err.format
-                    ("Incorrect number of arguments.%nUsage: WebCrawler <URL> [depth [downloaders [extractors [perHost]]]]");
+            System.err.format("Incorrect number of arguments.%nUsage:"
+                    + " WebCrawler <URL> [depth [downloaders [extractors [perHost]]]]");
             return;
         }
         try {
