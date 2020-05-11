@@ -55,8 +55,8 @@ public class HelloUDPServer implements HelloServer {
     @Override
     public void close() {
         closed = true;
-        listener.shutdown();
-        senders.shutdown();
+        listener.shutdownNow();
+        senders.shutdownNow();
         while (true) {
             try {
                 senders.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
@@ -68,16 +68,18 @@ public class HelloUDPServer implements HelloServer {
     }
 
     private void listenerThreadFunction() {
-        while (!Thread.currentThread().isInterrupted()) {
-            try {
-                byte[] buf = new byte[socket.getReceiveBufferSize()];
-                DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                socket.receive(packet);
-                senders.submit(() -> processRequestFunction(packet));
-            } catch (SocketException e) {
-                showExceptionMessageIfNotClosed("Cannot get default buffer size: ", e);
-            } catch (IOException e) {
-                showExceptionMessageIfNotClosed("Error while receiving message", e);
+        while (!socket.isClosed()) {
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    byte[] buf = new byte[socket.getReceiveBufferSize()];
+                    DatagramPacket packet = new DatagramPacket(buf, buf.length);
+                    socket.receive(packet);
+                    senders.submit(() -> processRequestFunction(packet));
+                } catch (SocketException e) {
+                    showExceptionMessageIfNotClosed("Cannot get default buffer size: ", e);
+                } catch (IOException e) {
+                    showExceptionMessageIfNotClosed("Error while receiving message", e);
+                }
             }
         }
     }
