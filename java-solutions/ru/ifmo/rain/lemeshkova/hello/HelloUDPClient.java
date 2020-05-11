@@ -31,7 +31,7 @@ public class HelloUDPClient implements HelloClient {
 
     private static void showUsage() {
         System.out.println(
-                "Usage: HelloUPDClient <server ip-address> <server port> <request prefix> <thread count> <request count>%n");
+                "Usage: HelloUDPClient <server ip-address> <server port> <request prefix> <thread count> <request count>%n");
     }
 
     private static int parseIntArgument(String[] args, int i, String expected) {
@@ -72,7 +72,7 @@ public class HelloUDPClient implements HelloClient {
 
     private void doRequest(String requestMessage, int threadNumber, int requestCount, SocketAddress serverSocketAddress) {
         try (DatagramSocket socket = new DatagramSocket()) {
-            final int TIME_OUT = 100;
+            final int TIME_OUT = 400;
             socket.setSoTimeout(TIME_OUT);
             for (int i = 0; i < requestCount; i++) {
                 String requestString = String.format("%s%d_%d", requestMessage, threadNumber, i);
