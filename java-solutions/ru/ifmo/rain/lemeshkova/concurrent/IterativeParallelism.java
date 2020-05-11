@@ -117,7 +117,6 @@ public class IterativeParallelism implements AdvancedIP {
      * @throws InterruptedException if executing thread was interrupted.
      */
     private <T, M, R> R parallelOperation(int threadCount, List<T> values, Function<Stream<T>, M> singleThreadFunction, Function<Stream<M>, R> collectThreadResultFunction) throws InterruptedException {
-        System.err.println("parallelOperation "+ threadCount);
         if (values.size() < threadCount && !values.isEmpty()) threadCount = values.size();
         int averageElementNumber = values.size() / threadCount;
         List<M> results;
