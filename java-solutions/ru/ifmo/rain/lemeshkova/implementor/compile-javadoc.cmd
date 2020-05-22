@@ -1,19 +1,12 @@
 @echo off
-SET return=%CD%
-SET implDir=%~dp0
-SET implDir=%implDir:~0,-1%
-cd %implDir%
 SET root=..\..\..\..\..\..\..\
-cd %root%
-SET root=%CD%
-cd %implDir%
-SET mod_name=ru.ifmo.rain.lemeshkova.implementor
-SET mod_path=ru\ifmo\rain\lemeshkova\implementor
 SET impler_name=info.kgeorgiy.java.advanced.implementor
-SET impler_path=info\kgeorgiy\java\advanced\implementor
-SET artifacts=%root%\java-advanced-2020\artifacts
-SET lib=%root%\java-advanced-2020\lib
-SET modules=%root%\java-advanced-2020\modules
+SET impler_relative_path=info\kgeorgiy\java\advanced\implementor
+SET java-advanced-2020=%root%\java-advanced-2020
+SET lib=%java-advanced-2020%\lib
+SET artifacts=%java-advanced-2020%\artifacts
+SET modules=%java-advanced-2020%\modules
+SET impler_path=%modules%\%impler_name%\%impler_relative_path%
 
 javadoc ^
     -private ^
@@ -21,8 +14,7 @@ javadoc ^
     -d _javadoc ^
     -cp "%artifacts%\*.jar";"%lib%\*.jar"; ^
      *.java ^
-     "%modules%\%impler_name%\%impler_path%\Impler.java" ^
-     "%modules%\%impler_name%\%impler_path%\JarImpler.java" ^
-     "%modules%\%impler_name%\%impler_path%\ImplerException.java" ^
-     "%modules%\%impler_name%\%impler_path%\package-info.java"
-cd "%return%"
+     "%impler_path%\Impler.java" ^
+     "%impler_path%\JarImpler.java" ^
+     "%impler_path%\ImplerException.java" ^
+     "%impler_path%\package-info.java"

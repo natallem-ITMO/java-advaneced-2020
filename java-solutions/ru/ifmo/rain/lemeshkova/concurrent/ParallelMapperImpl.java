@@ -52,6 +52,7 @@ public class ParallelMapperImpl implements ParallelMapper {
 
     @Override
     public <T, R> List<R> map(Function<? super T, ? extends R> f, List<? extends T> args) throws InterruptedException {
+        System.out.println("22.47");
         if (closed) return null;
         List<R> result = new ArrayList<>(Collections.nCopies(args.size(), null));
         TaskManager manager = new TaskManager(args.size());
@@ -139,3 +140,5 @@ public class ParallelMapperImpl implements ParallelMapper {
         }
     }
 }
+
+

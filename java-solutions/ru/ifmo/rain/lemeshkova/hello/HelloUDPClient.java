@@ -8,7 +8,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
 public class HelloUDPClient implements HelloClient {
 
@@ -22,15 +21,15 @@ public class HelloUDPClient implements HelloClient {
             int port = parseIntArgument(args, 1, "port number");
             String prefix = args[2];
             int threadCount = parseIntArgument(args, 3, "number of threads");
-            int requests = parseIntArgument(args, 4, "number of request for one thread");
-            new HelloUDPClient().run(host, port, prefix, threadCount, requests);
+            int perThreadRequestCount = parseIntArgument(args, 4, "number of request for one thread");
+            new HelloUDPClient().run(host, port, prefix, threadCount, perThreadRequestCount);
         } catch (NumberFormatException ex) {
             System.out.println(ex.getMessage());
         }
     }
 
     private static void showUsage() {
-        System.out.println(
+        System.out.printf(
                 "Usage: HelloUDPClient <server ip-address> <server port> <request prefix> <thread count> <request count>%n");
     }
 
@@ -51,11 +50,9 @@ public class HelloUDPClient implements HelloClient {
         ExecutorService threadPool = Executors.newFixedThreadPool(threads);
         SocketAddress serverSocketAddress;
         try {
-            InetAddress inetAddress = InetAddress.getByName(host);
-            serverSocketAddress = new InetSocketAddress(inetAddress, port);
+            serverSocketAddress = new InetSocketAddress(InetAddress.getByName(host), port);
         } catch (UnknownHostException e) {
-            System.err.printf("Error. Unknown host address %s", host);
-            return;
+            throw new IllegalArgumentException("Error. Unknown host address"+host);
         }
 
         for (int i = 0; i < threads; i++) {
@@ -72,8 +69,8 @@ public class HelloUDPClient implements HelloClient {
 
     private void doRequest(String requestMessage, int threadNumber, int requestCount, SocketAddress serverSocketAddress) {
         try (DatagramSocket socket = new DatagramSocket()) {
-            final int TIME_OUT = 400;
-            socket.setSoTimeout(TIME_OUT);
+            final int TIMEOUT_MILLIS = 100;
+            socket.setSoTimeout(TIMEOUT_MILLIS);
             for (int i = 0; i < requestCount; i++) {
                 String requestString = String.format("%s%d_%d", requestMessage, threadNumber, i);
                 byte[] requestBuffer = requestString.getBytes(StandardCharsets.UTF_8);
@@ -88,7 +85,8 @@ public class HelloUDPClient implements HelloClient {
                         try {
                             socket.receive(responsePacket);
                             String response = getString(responsePacket);
-                            if (validateAndShowSendResult(requestString, response, threadNumber, i)) {
+                            boolean valid = validateAndShowSentResult(requestString, response, threadNumber, i);
+                            if (valid) {
                                 break;
                             }
                         } catch (IOException ex) {
@@ -104,13 +102,8 @@ public class HelloUDPClient implements HelloClient {
         }
     }
 
-    private boolean isValidResponse(int threadNumber, int requestNumber, String response) {
-        String pattern = threadNumber + "[\\D]+" + requestNumber + "($|[\\D]+)";
-        return Pattern.compile(pattern).matcher(response).find();
-    }
-
-    private boolean validateAndShowSendResult(String request, String response, int threadNumber, int requestNumber) {
-        boolean valid = isValidResponse(threadNumber, requestNumber, response);
+    private boolean validateAndShowSentResult(String request, String response, int threadNumber, int requestNumber) {
+        boolean valid = response.matches("[\\D]*" + threadNumber + "[\\D]*" + requestNumber + "[\\D]*");
         String action = (valid) ? "accepted" : "rejected";
         System.err.printf("Send request: \"%s\"%n" +
                 "Received and %s response: \"%s\"%n" +
@@ -119,10 +112,6 @@ public class HelloUDPClient implements HelloClient {
     }
 
     private static String getString(DatagramPacket packet) {
-        return new String(
-                packet.getData(),
-                packet.getOffset(),
-                packet.getLength(),
-                StandardCharsets.UTF_8);
+        return new String(packet.getData(), packet.getOffset(), packet.getLength(), StandardCharsets.UTF_8);
     }
 }

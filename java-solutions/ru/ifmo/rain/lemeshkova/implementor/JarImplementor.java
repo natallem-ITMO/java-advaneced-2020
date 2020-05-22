@@ -124,17 +124,16 @@ public class JarImplementor extends Implementor implements JarImpler {
             filePath = filePath.resolve(s);
         }
         filePath = filePath.resolve(token.getSimpleName() + "Impl");
-        Path classPath = temp.toAbsolutePath();
-
+        Path classPath = null;
         try {
-            Path kgeorgiy = Paths.get(token.getProtectionDomain().getCodeSource().getLocation().toURI());
-            classPath = classPath.resolve(kgeorgiy);
+            classPath = temp.toAbsolutePath().resolve(Paths.get(token.getProtectionDomain().getCodeSource().getLocation().toURI()));
         } catch (URISyntaxException ignored) {
         }
         JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
-        if (javaCompiler == null) throw new ImplerException("no java compiler");
-        String[] args = {"-cp", classPath + File.pathSeparator + System.getProperty("java.class.path"), Path.of(temp.toAbsolutePath().toString(), filePath + ".java").toString()};
-        if (javaCompiler.run(null, null, null, args) != 0)
+        if (javaCompiler == null) throw new ImplerException("Cannot run java compiler");
+        if (javaCompiler.run(null, null, null,
+                "-cp", classPath + File.pathSeparator + System.getProperty("java.class.path"), Path.of(temp.toAbsolutePath().toString(), filePath + ".java").toString())
+                != 0)
             throw new ImplerException("Failed while running compiling class");
     }
 
