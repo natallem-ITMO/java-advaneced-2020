@@ -15,6 +15,7 @@ module java.solutions {
     requires info.kgeorgiy.java.advanced.mapper;
     requires info.kgeorgiy.java.advanced.student;
     requires info.kgeorgiy.java.advanced.walk;
+    requires java.rmi;
 
     exports ru.ifmo.rain.lemeshkova.concurrent;
 }
