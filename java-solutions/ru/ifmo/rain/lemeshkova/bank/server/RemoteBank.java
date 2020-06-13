@@ -57,8 +57,7 @@ public class RemoteBank implements Bank {
             Logger.info(loggerSuffix, String.format("Register %s", person));
             return person;
         } else {
-            Person remotePerson = getRemotePerson(passportId);
-            if (!(remotePerson.getName().equals(name) && remotePerson.getSurname().equals(surname))) {
+            if (!(result.getName().equals(name) && result.getSurname().equals(surname))) {
                 throw new ServerBankException("Person already exists, but full names are different");
             }
             Logger.info(loggerSuffix, String.format("This registered person is already exists. Return %s", result));

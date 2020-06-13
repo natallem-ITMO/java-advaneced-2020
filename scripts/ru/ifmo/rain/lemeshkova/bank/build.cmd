@@ -1,6 +1,7 @@
 @echo off
-
-SET scripts=%cd%
+pushd .
+SET scripts=%~dp0
+cd %scripts%
 pushd ..\..\..\..\..\..\
 SET cur_repo=%cd%
 cd ..
@@ -19,13 +20,10 @@ SET classes_to_compile=to_compile.txt
 pushd %java_solutions%
 dir *.java /s /b > %scripts%\%classes_to_compile%
 popd
-
 RD /S /Q %out% 2> nul
 echo Compiling...
 javac -encoding UTF8 --module-path %mod_path% %java_solutions%\module-info.java @%classes_to_compile% -d %out%
-
 del %classes_to_compile%
 
 :::::::::::::::::::::::::::::::::::::::::::::::::::::
-
 @echo on

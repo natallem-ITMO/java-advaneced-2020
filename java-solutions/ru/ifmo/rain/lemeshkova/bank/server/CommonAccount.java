@@ -34,4 +34,11 @@ public class CommonAccount implements Serializable, Account {
         Logger.additionalInfo(loggerSuffix, "Setting amount of money for accountId " + id);
         this.amount = amount;
     }
+
+    @Override
+    public synchronized int addAmount(int amount) {
+        int previous = this.amount;
+        this.amount += amount;
+        return previous;
+    }
 }

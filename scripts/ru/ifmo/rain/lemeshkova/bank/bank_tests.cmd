@@ -1,6 +1,7 @@
 @echo off
-
-SET scripts=%cd%
+pushd .
+SET scripts=%~dp0
+cd %scripts%
 pushd ..\..\..\..\..\..\
 SET cur_repo=%cd%
 cd ..
@@ -14,11 +15,11 @@ SET out=%cur_repo%\compiled
 SET mod_path=%java_advanced_2020%\lib;%java_advanced_2020%\artifacts;%lib%
 
 :::::::::::::::::::::::::::::::::::::::::::::::::::::
+
 call build
 @echo off
 
 java --module-path=%mod_path%;%out% -m java.solutions/ru.ifmo.rain.lemeshkova.bank.tests.BankTests
-echo Tests finished with exit code %errorlevel%
-:::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-@echo on
+if errorlevel 1 (exit /B 1) else (exit /B 0)
+

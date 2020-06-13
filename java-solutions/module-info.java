@@ -16,6 +16,7 @@ module java.solutions {
     requires info.kgeorgiy.java.advanced.student;
     requires info.kgeorgiy.java.advanced.walk;
     requires java.rmi;
+    requires org.junit.jupiter.api;
 
     exports ru.ifmo.rain.lemeshkova.concurrent;
 }

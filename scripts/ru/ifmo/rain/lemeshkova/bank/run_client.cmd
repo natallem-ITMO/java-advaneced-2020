@@ -1,6 +1,7 @@
 @echo off
-
-SET scripts=%cd%
+pushd .
+SET scripts=%~dp0
+cd %scripts%
 pushd ..\..\..\..\..\..\
 SET cur_repo=%cd%
 cd ..

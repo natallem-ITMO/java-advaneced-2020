@@ -33,7 +33,7 @@ public class Client {
                 throw new IllegalArgumentException("Args for client cannot be null\n" + USAGE_LINE);
             }
             if (usingArgs.length < 5) {
-                if (usingArgs.length==0 && CAN_USE_DEFAULT_ARGUMENTS) {
+                if (usingArgs.length == 0 && CAN_USE_DEFAULT_ARGUMENTS) {
                     Logger.info("Using default arguments.");
                     usingArgs = defaultArgs;
                 } else {
@@ -85,8 +85,7 @@ public class Client {
     }
 
     public static void addMoneyAndShowResult(int addSum, Person person, Account account) throws RemoteException {
-        int previousAmount = account.getAmount();
-        account.setAmount(account.getAmount() + addSum);
+        int previousAmount = account.addAmount(addSum);
         Logger.info(loggerSuffix, String.format("Change money amount for person with full name: %s %s. Account id: %s with sum: %d(previous: %d)",
                 person.getName(), person.getSurname(), account.getId(), account.getAmount(), previousAmount));
     }
