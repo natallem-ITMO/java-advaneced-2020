@@ -6,50 +6,42 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.*;
 
-public class HelloUDPServer implements HelloServer {
+public class HelloUDPServer extends AbstractHelloServer implements HelloServer {
+
     private boolean closed;
     private DatagramSocket socket;
-    private ExecutorService senders;
-    private ExecutorService listener;
 
     public static void main(String[] args) {
-        if (args.length < 2 || args[0] == null || args[1] == null) {
-            System.err.format("Incorrect number of arguments.%nUsage: HelloUDPServer <port-count> <thread-count>%n");
-            return;
-        }
-        int[] argsInt = new int[2];
-        for (int i = 0; i < 2; i++) {
-            try {
-                argsInt[i] = Integer.parseInt(args[i]);
-            } catch (NumberFormatException ex) {
-                System.err.format("%d argument is not a number. Cannot parse %s as integer%n", i, args[i]);
-            }
-        }
-        new HelloUDPServer().start(argsInt[0], argsInt[1]);
+        launch(args, new HelloUDPServer(), "HelloUDPServer");
     }
 
     @Override
-    public void start(int port, int threads) {
+    protected void listen() {
+        while (!socket.isClosed() && !Thread.currentThread().isInterrupted()) {
+            try {
+                byte[] buf = new byte[socket.getReceiveBufferSize()];
+                DatagramPacket packet = new DatagramPacket(buf, buf.length);
+                socket.receive(packet);
+                workers.submit(() -> processRequest(packet));
+            } catch (SocketException e) {
+                showExceptionMessageIfNotClosed("Cannot get default buffer size: ", e);
+            } catch (IOException e) {
+                showExceptionMessageIfNotClosed("Error while receiving message", e);
+            }
+        }
+    }
+
+    @Override
+    void setUp(int port, int threadCount) {
         try {
             if (socket != null) {
                 System.out.println("This HelloServer is already in use, connected to port " + socket.getPort());
                 return;
             }
             socket = new DatagramSocket(port);
-            senders = new ThreadPoolExecutor(
-                    threads,
-                    threads,
-                    0,
-                    TimeUnit.MILLISECONDS,
-                    new LinkedBlockingQueue<>(),
-                    new ThreadPoolExecutor.DiscardPolicy());
-            listener = Executors.newSingleThreadExecutor();
-            listener.submit(this::receivePacket);
         } catch (SocketException e) {
-            showExceptionMessageIfNotClosed("Cannot open server socket on port " + port, e);
+            throw HelloUtils.error("HelloUDPServer", "Cannot open server socket on port " + port, e);
         }
     }
 
@@ -60,39 +52,14 @@ public class HelloUDPServer implements HelloServer {
         }
         closed = true;
         socket.close();
-        listener.shutdownNow();
-        senders.shutdownNow();
-        while (true) {
-            try {
-                senders.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-                break;
-            } catch (InterruptedException ignored) {
-            }
-        }
-    }
-
-    private void receivePacket() {
-        while (!socket.isClosed()) {
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    byte[] buf = new byte[socket.getReceiveBufferSize()];
-                    DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                    socket.receive(packet);
-                    senders.submit(() -> processRequest(packet));
-                } catch (SocketException e) {
-                    showExceptionMessageIfNotClosed("Cannot get default buffer size: ", e);
-                } catch (IOException e) {
-                    showExceptionMessageIfNotClosed("Error while receiving message", e);
-                }
-            }
-        }
+        stopWorkersAndListener();
     }
 
     private void processRequest(DatagramPacket packet) {
         if (!closed) {
             try {
                 String receivedMessage = new String(packet.getData(), 0, packet.getLength());
-                byte[] answer = ("Hello, " + receivedMessage).getBytes(StandardCharsets.UTF_8);
+                byte[] answer = (SERVER_PREFIX + receivedMessage).getBytes(HelloUtils.CHARSET);
                 packet = new DatagramPacket(answer, answer.length, packet.getAddress(), packet.getPort());
                 socket.send(packet);
             } catch (IOException ex) {
