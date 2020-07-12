@@ -21,6 +21,7 @@ public class WebCrawler implements Crawler {
         this.extractors = Executors.newFixedThreadPool(extractors);
         this.perHost = perHost;
         this.hostDataMap = new ConcurrentHashMap<>();
+
     }
 
     @Override
@@ -119,15 +120,15 @@ public class WebCrawler implements Crawler {
         downloaders.shutdown();
         extractors.shutdown();
         final long timeout = Long.MAX_VALUE;
-
-        try {
-            downloaders.awaitTermination(5, TimeUnit.MILLISECONDS);
-            extractors.awaitTermination(5, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException ignored) {
-        }
+//
+//        try {
+//            downloaders.awaitTermination(5, TimeUnit.MILLISECONDS);
+//            extractors.awaitTermination(5, TimeUnit.MILLISECONDS);
+//        } catch (InterruptedException ignored) {
+//        }
     }
 
-   /* private static int getArgumentOrDefault(String[] args, int index, int defaultValue) {
+    private static int getArgumentOrDefault(String[] args, int index, int defaultValue) {
         return (args.length > index) ? Integer.parseInt(args[index]) : defaultValue;
     }
 
@@ -155,7 +156,7 @@ public class WebCrawler implements Crawler {
         } catch (IOException e) {
             System.err.format("Incorrect usage.%nUsage: WebCrawler <URL> [depth [downloaders [extractors [perHost]]]]");
         }
-    }*/
+    }
 }
 
 

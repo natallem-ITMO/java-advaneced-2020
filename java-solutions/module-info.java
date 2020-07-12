@@ -1,12 +1,8 @@
-/**
- * Module for solution of task <a href="https://www.kgeorgiy.info/courses/java-advanced/homeworks.html#homework-implementor">Implementor</a> homework
- * of <a href="https://www.kgeorgiy.info/courses/java-advanced/">Java Advanced</a> course.
- *
- * @author Natalia Lemeshkova
- */
+
 
 module java.solutions {
     requires java.compiler;
+
     requires info.kgeorgiy.java.advanced.arrayset;
     requires info.kgeorgiy.java.advanced.concurrent;
     requires info.kgeorgiy.java.advanced.crawler;
@@ -16,7 +12,19 @@ module java.solutions {
     requires info.kgeorgiy.java.advanced.student;
     requires info.kgeorgiy.java.advanced.walk;
     requires java.rmi;
-    requires org.junit.jupiter.api;
 
-    exports ru.ifmo.rain.lemeshkova.concurrent;
+    exports ru.ifmo.rain.lemeshkova.hello;
+
+    /*12 homework*/
+  /*  requires java.rmi;
+
+    exports ru.ifmo.rain.lemeshkova.bank.client;
+    exports ru.ifmo.rain.lemeshkova.bank.server;
+    exports ru.ifmo.rain.lemeshkova.bank.common;
+
+    requires org.junit.jupiter;
+    requires org.junit.platform.launcher;
+
+    exports ru.ifmo.rain.lemeshkova.bank.tests;
+    opens ru.ifmo.rain.lemeshkova.bank.tests to org.junit.jupiter, org.junit.platform.commons;*/
 }
